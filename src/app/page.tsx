@@ -36,25 +36,26 @@ function displayTitle(item: Item) {
 }
 
 function RaindropDecider() {
-  const [token, setToken] = React.useState<string>("");
-  const [tokenInput, setTokenInput] = React.useState<string>("");
+  const [authenticated, setAuthenticated] = React.useState<boolean>(false);
   const [collections, setCollections] = React.useState<Collection[]>([]);
   const [collectionId, setCollectionId] = React.useState<number | null>(null);
   const [current, setCurrent] = React.useState<Item | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    const saved = window.localStorage.getItem("raindrop_token") ?? "";
-    if (saved) {
-      setToken(saved);
+  async function refreshSession() {
+    try {
+      const res = await fetch("/api/auth/session");
+      const data = (await res.json()) as { authenticated: boolean };
+      setAuthenticated(Boolean(data.authenticated));
+    } catch {
+      setAuthenticated(false);
     }
-  }, []);
+  }
 
-  const authHeaders = React.useMemo<HeadersInit | undefined>(() => {
-    if (!token) return undefined;
-    return { Authorization: `Bearer ${token}` };
-  }, [token]);
+  React.useEffect(() => {
+    refreshSession();
+  }, []);
 
   const selectedCollection = React.useMemo(() => {
     if (collectionId === null) return null;
@@ -64,13 +65,11 @@ function RaindropDecider() {
     return { _id: collectionId, title: `Collection ${collectionId}` };
   }, [collectionId, collections]);
 
-  async function loadCollections(nextToken: string) {
+  async function loadCollections() {
     setError(null);
     setIsLoading(true);
     try {
-      const res = await fetch("/api/collections", {
-        headers: { Authorization: `Bearer ${nextToken}` },
-      });
+      const res = await fetch("/api/collections");
       const data = (await res.json()) as
         | { collections: Collection[] }
         | { error: string };
@@ -92,7 +91,6 @@ function RaindropDecider() {
   async function drawNext(nextCollectionId?: number) {
     const cid = nextCollectionId ?? collectionId;
     if (cid === null) return;
-    if (!authHeaders) return;
     setError(null);
     setIsLoading(true);
     try {
@@ -102,7 +100,7 @@ function RaindropDecider() {
       if (typeof count === "number" && Number.isFinite(count) && count > 0) {
         url.searchParams.set("count", String(count));
       }
-      const res = await fetch(url.toString(), { headers: authHeaders });
+      const res = await fetch(url.toString());
       const data = (await res.json()) as { item: Item | null } | { error: string };
       if (!res.ok || "error" in data) {
         throw new Error("error" in data ? data.error : "Failed to draw");
@@ -119,13 +117,11 @@ function RaindropDecider() {
 
   async function deleteCurrent() {
     if (!current) return;
-    if (!authHeaders) return;
     setError(null);
     setIsLoading(true);
     try {
       const res = await fetch(`/api/raindrop/${current._id}`, {
         method: "DELETE",
-        headers: authHeaders,
       });
       const data = (await res.json()) as { result: boolean } | { error: string };
       if (!res.ok || "error" in data) {
@@ -140,29 +136,23 @@ function RaindropDecider() {
     }
   }
 
-  function connect() {
-    const next = tokenInput.trim();
-    if (!next) return;
-    window.localStorage.setItem("raindrop_token", next);
-    setToken(next);
-    setTokenInput("");
-    setCollectionId(null);
-    setCurrent(null);
-    loadCollections(next);
-  }
-
-  function disconnect() {
-    window.localStorage.removeItem("raindrop_token");
-    setToken("");
-    setCollections([]);
-    setCollectionId(null);
-    setCurrent(null);
-    setError(null);
+  async function logout() {
+    setIsLoading(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setCollections([]);
+      setCollectionId(null);
+      setCurrent(null);
+      setError(null);
+      await refreshSession();
+      setIsLoading(false);
+    }
   }
 
   React.useEffect(() => {
-    if (token) loadCollections(token);
-  }, [token]);
+    if (authenticated) loadCollections();
+  }, [authenticated]);
 
   return (
     <div className="min-h-dvh bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-100">
@@ -176,10 +166,10 @@ function RaindropDecider() {
           </div>
           <button
             type="button"
-            onClick={disconnect}
+            onClick={() => void logout()}
             className={cn(
               "rounded-lg px-3 py-2 text-sm font-medium",
-              token
+              authenticated
                 ? "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
                 : "pointer-events-none opacity-0"
             )}
@@ -188,33 +178,21 @@ function RaindropDecider() {
           </button>
         </header>
 
-        {!token ? (
+        {!authenticated ? (
           <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <div className="text-sm font-medium">Raindrop API token</div>
+                <div className="text-sm font-medium">Sign in</div>
                 <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Your token is stored only in this browser.
+                  You’ll be redirected to Raindrop to authorize this app.
                 </div>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  placeholder="Paste token"
-                  className="h-11 flex-1 rounded-xl border border-zinc-200 bg-transparent px-3 text-sm outline-none focus:border-zinc-400 dark:border-zinc-800 dark:focus:border-zinc-600"
-                  spellCheck={false}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                />
-                <button
-                  type="button"
-                  onClick={connect}
-                  className="h-11 rounded-xl bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
-                >
-                  Connect
-                </button>
-              </div>
+              <a
+                href="/api/auth/login"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+              >
+                Login with Raindrop
+              </a>
             </div>
           </section>
         ) : (

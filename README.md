@@ -16,6 +16,22 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Raindrop OAuth
+
+Set these environment variables:
+
+```bash
+APP_BASE_URL=http://localhost:3000
+RAINDROP_CLIENT_ID=...
+RAINDROP_CLIENT_SECRET=...
+```
+
+In Raindrop App Management Console set the OAuth redirect URL to:
+
+```text
+${APP_BASE_URL}/api/auth/callback
+```
+
 ## Docker
 
 Build and run:

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { raindropFetch } from "@/lib/raindrop";
+import { getRaindropTokenFromRequest } from "@/lib/raindropAuth";
 
 type DeleteResponse = {
   result: boolean;
@@ -9,12 +10,11 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = req.headers.get("authorization") ?? "";
-  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  const token = await getRaindropTokenFromRequest(req);
 
   if (!token) {
     return NextResponse.json(
-      { error: "Missing Authorization header" },
+      { error: "Not authenticated" },
       { status: 401 }
     );
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { raindropFetch, type RaindropCollection } from "@/lib/raindrop";
+import { getRaindropTokenFromRequest } from "@/lib/raindropAuth";
 
 type CollectionResponse = {
   result: boolean;
@@ -10,12 +11,11 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = req.headers.get("authorization") ?? "";
-  const token = auth.replace(/^Bearer\s+/i, "").trim();
+  const token = await getRaindropTokenFromRequest(req);
 
   if (!token) {
     return NextResponse.json(
-      { error: "Missing Authorization header" },
+      { error: "Not authenticated" },
       { status: 401 }
     );
   }

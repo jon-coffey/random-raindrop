@@ -6,3 +6,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - APP_BASE_URL=http://localhost:3000
+      - RAINDROP_CLIENT_ID=
+      - RAINDROP_CLIENT_SECRET=
