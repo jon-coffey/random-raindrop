@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getEffectiveBaseUrl, getRequestBaseUrl } from "@/lib/baseUrl";
 
 export async function GET(req: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const derived = getRequestBaseUrl(req);
   const effective = getEffectiveBaseUrl(req);
 

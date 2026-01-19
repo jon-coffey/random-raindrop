@@ -27,6 +27,19 @@ export function getEffectiveBaseUrl(req: Request) {
   const env = process.env.APP_BASE_URL ?? null;
   if (!env) return derived;
 
+  try {
+    const envUrl = new URL(env);
+    const derivedUrl = derived ? new URL(derived) : null;
+    if (derivedUrl) {
+      const hostMismatch = envUrl.host !== derivedUrl.host;
+      const protoMismatch = envUrl.protocol !== derivedUrl.protocol;
+      if (hostMismatch || protoMismatch) {
+        return derived;
+      }
+    }
+  } catch {
+  }
+
   if (derived && !isLocalhostBaseUrl(derived) && isLocalhostBaseUrl(env)) {
     return derived;
   }
