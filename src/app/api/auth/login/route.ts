@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
+import { getRequestBaseUrl } from "@/lib/baseUrl";
 
 export async function GET(req: Request) {
-  const baseUrl = process.env.APP_BASE_URL;
+  const baseUrl = process.env.APP_BASE_URL ?? getRequestBaseUrl(req);
   const clientId = process.env.RAINDROP_CLIENT_ID;
 
   if (!baseUrl || !clientId) {
     return NextResponse.json(
-      { error: "Missing APP_BASE_URL or RAINDROP_CLIENT_ID" },
+      { error: "Missing RAINDROP_CLIENT_ID (and APP_BASE_URL if host headers are not available)" },
       { status: 500 }
     );
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getRequestBaseUrl } from "@/lib/baseUrl";
 
 type TokenResponse =
   | {
@@ -10,13 +11,13 @@ type TokenResponse =
   | { error: string };
 
 export async function GET(req: Request) {
-  const baseUrl = process.env.APP_BASE_URL;
+  const baseUrl = process.env.APP_BASE_URL ?? getRequestBaseUrl(req);
   const clientId = process.env.RAINDROP_CLIENT_ID;
   const clientSecret = process.env.RAINDROP_CLIENT_SECRET;
 
   if (!baseUrl || !clientId || !clientSecret) {
     return NextResponse.json(
-      { error: "Missing APP_BASE_URL or RAINDROP_CLIENT_ID or RAINDROP_CLIENT_SECRET" },
+      { error: "Missing RAINDROP_CLIENT_ID or RAINDROP_CLIENT_SECRET (and APP_BASE_URL if host headers are not available)" },
       { status: 500 }
     );
   }
