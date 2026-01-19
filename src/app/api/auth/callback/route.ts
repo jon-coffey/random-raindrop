@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestBaseUrl } from "@/lib/baseUrl";
+import { getEffectiveBaseUrl } from "@/lib/baseUrl";
 
 type TokenResponse =
   | {
@@ -11,7 +11,7 @@ type TokenResponse =
   | { error: string };
 
 export async function GET(req: Request) {
-  const baseUrl = process.env.APP_BASE_URL ?? getRequestBaseUrl(req);
+  const baseUrl = getEffectiveBaseUrl(req);
   const clientId = process.env.RAINDROP_CLIENT_ID;
   const clientSecret = process.env.RAINDROP_CLIENT_SECRET;
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getRequestBaseUrl } from "@/lib/baseUrl";
+import { getEffectiveBaseUrl } from "@/lib/baseUrl";
 
 export async function GET(req: Request) {
-  const baseUrl = process.env.APP_BASE_URL ?? getRequestBaseUrl(req);
+  const baseUrl = getEffectiveBaseUrl(req);
   const clientId = process.env.RAINDROP_CLIENT_ID;
 
   if (!baseUrl || !clientId) {
